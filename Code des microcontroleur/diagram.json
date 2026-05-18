@@ -1,0 +1,42 @@
+{
+  "version": 1,
+  "author": "Antigravity",
+  "editor": "wokwi",
+  "parts": [
+    { "type": "board-esp32-devkit-c-v4", "id": "esp", "top": 0, "left": 0, "attrs": {} },
+    { "type": "wokwi-hc-sr04", "id": "ultrasonic", "top": -120, "left": 130, "attrs": { "distance": "50" } },
+    { "type": "wokwi-servo", "id": "servo", "top": -120, "left": -150, "attrs": {} },
+    { "type": "wokwi-potentiometer", "id": "pot1", "top": 150, "left": -150, "attrs": {} },
+    { "type": "wokwi-slide-switch", "id": "swG", "top": 150, "left": 50, "attrs": {} },
+    { "type": "wokwi-slide-switch", "id": "swC", "top": 150, "left": 100, "attrs": {} },
+    { "type": "wokwi-slide-switch", "id": "swD", "top": 150, "left": 150, "attrs": {} },
+    { "type": "wokwi-dht22", "id": "dht1", "top": 40, "left": -150, "attrs": {} }
+  ],
+  "connections": [
+    [ "esp:TX", "$serialMonitor:RX", "", [] ],
+    [ "esp:RX", "$serialMonitor:TX", "", [] ],
+    [ "ultrasonic:VCC", "esp:5V", "red", [] ],
+    [ "ultrasonic:GND", "esp:GND.1", "black", [] ],
+    [ "ultrasonic:TRIG", "esp:16", "green", [] ],
+    [ "ultrasonic:ECHO", "esp:17", "blue", [] ],
+    [ "servo:V+", "esp:5V", "red", [] ],
+    [ "servo:GND", "esp:GND.1", "black", [] ],
+    [ "servo:PWM", "esp:18", "orange", [] ],
+    [ "pot1:VCC", "esp:3V3", "red", [] ],
+    [ "pot1:GND", "esp:GND.1", "black", [] ],
+    [ "pot1:SIG", "esp:34", "yellow", [] ],
+    [ "swG:1", "esp:GND.2", "black", [] ],
+    [ "swG:2", "esp:32", "green", [] ],
+    [ "swG:3", "esp:3V3", "red", [] ],
+    [ "swC:1", "esp:GND.2", "black", [] ],
+    [ "swC:2", "esp:23", "green", [] ],
+    [ "swC:3", "esp:3V3", "red", [] ],
+    [ "swD:1", "esp:GND.2", "black", [] ],
+    [ "swD:2", "esp:33", "green", [] ],
+    [ "swD:3", "esp:3V3", "red", [] ],
+    [ "dht1:VCC", "esp:3V3", "red", [] ],
+    [ "dht1:GND", "esp:GND.2", "black", [] ],
+    [ "dht1:SDA", "esp:19", "purple", [] ]
+  ],
+  "dependencies": {}
+}

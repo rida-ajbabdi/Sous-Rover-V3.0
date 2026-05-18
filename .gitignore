@@ -1,0 +1,10 @@
+﻿# Dépendances Node.js
+node_modules/
+# Variables d'environnement (Mots de passe, Clés API)
+.env
+# Base de données (pour ne pas écraser les données en production)
+*.db
+*.sqlite
+# Fichiers système Mac/Windows
+.DS_Store
+Thumbs.db
