@@ -457,6 +457,30 @@
             <!-- JS populated -->
           </div>
         </div>
+
+        <!-- Chart 6: Statistiques Hebdomadaires -->
+        <div class="glass-card chart-card chart-card-large" id="weekly-stats-card">
+          <div class="card-header">
+            <h3 class="card-title">Statistiques Hebdomadaires (7 Jours)</h3>
+            <span class="chart-source-badge">BDD</span>
+          </div>
+          <div style="overflow-x:auto; max-height:220px; overflow-y:auto;">
+            <table id="weekly-stats-table" style="width:100%;border-collapse:collapse;font-size:0.78rem;color:rgba(232,237,242,0.85);">
+              <thead>
+                <tr style="border-bottom:1px solid rgba(255,255,255,0.12);position:sticky;top:0;background:#0f1923;">
+                  <th style="padding:7px 10px;text-align:left;font-weight:600;">Zone</th>
+                  <th style="padding:7px 10px;text-align:right;font-weight:600;">Jour</th>
+                  <th style="padding:7px 10px;text-align:right;font-weight:600;">Mesures</th>
+                  <th style="padding:7px 10px;text-align:right;font-weight:600;">Hum. moy.</th>
+                  <th style="padding:7px 10px;text-align:right;font-weight:600;">Temp. moy.</th>
+                </tr>
+              </thead>
+              <tbody id="weekly-stats-tbody">
+                <tr><td colspan="5" style="text-align:center;padding:20px;opacity:0.5;">Chargement...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
       </div>
     </div>
   </section>
@@ -648,7 +672,8 @@
         <p class="section-subtitle">Historique et Alertes Système · سجل الأحداث</p>
       </header>
 
-      <div class="alerts-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
+      <div class="alerts-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;">
+
         <!-- Journal principal -->
         <div class="glass-card alerts-card">
           <div class="alerts-header">
@@ -659,13 +684,38 @@
             </div>
             <button class="clear-alerts-btn" id="btn-clear-alerts">Effacer le journal</button>
           </div>
-          
           <div class="alerts-feed" id="alerts-feed">
             <div class="alert-item alert-info">
               <span class="alert-time">Maintenant</span>
               <span class="alert-icon">ℹ️</span>
               <span class="alert-msg">Initialisation du système d'alertes terminée.</span>
             </div>
+          </div>
+        </div>
+
+        <!-- Alertes Actives BDD (P14) -->
+        <div class="glass-card alerts-card">
+          <div class="alerts-header">
+            <div class="ah-left">
+              <h3 class="card-title" style="margin:0;font-size:0.95rem;">⚠️ Alertes Actives</h3>
+            </div>
+            <button class="clear-alerts-btn" id="btn-refresh-active-alerts">🔄 Actualiser</button>
+          </div>
+          <div class="alerts-feed" id="active-alerts-feed" style="max-height:280px;overflow-y:auto;">
+            <div class="alert-item alert-info" style="opacity:0.6;">Chargement des alertes...</div>
+          </div>
+        </div>
+
+        <!-- Logs Système (P16) -->
+        <div class="glass-card alerts-card">
+          <div class="alerts-header">
+            <div class="ah-left">
+              <h3 class="card-title" style="margin:0;font-size:0.95rem;">🔍 Logs Système</h3>
+            </div>
+            <button class="clear-alerts-btn" id="btn-refresh-logs">🔄 Actualiser</button>
+          </div>
+          <div id="system-logs-feed" style="max-height:280px;overflow-y:auto;font-family:monospace;font-size:0.72rem;padding:6px 0;">
+            <div style="opacity:0.5;padding:16px;text-align:center;">Chargement des logs...</div>
           </div>
         </div>
 
@@ -680,6 +730,7 @@
             </div>
           </div>
         </div>
+
       </div>
     </div>
   </section>

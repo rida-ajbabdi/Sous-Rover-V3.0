@@ -126,6 +126,7 @@ router.get('/', requireReadKey, async (req, res) => {
         temperature_air : m.temperature_air,
         humidite_air    : m.humidite_air,
         distance_obstacle: m.distance_obstacle,
+        battery_level   : m.battery_level,
         mode            : m.mode,
         robot_status    : m.robot_status,
         statut          : evaluation.statut,

@@ -72,9 +72,10 @@ function evaluerHumidite(humiditeSol, zone, seuilsZone = {}, temperatureAir = nu
   // ── 4. Sélection du cas le plus grave ─────────────────────
   const scoreMax = Math.max(scoreSol, scoreTemp, scoreAir);
   let message;
-  if      (scoreMax === scoreTemp && msgTemp) message = msgTemp;
-  else if (scoreMax === scoreAir  && msgAir)  message = msgAir;
-  else                                         message = msgSol;
+  if      (scoreSol  === scoreMax)              message = msgSol;
+  else if (scoreTemp === scoreMax && msgTemp)  message = msgTemp;
+  else if (scoreAir  === scoreMax && msgAir)   message = msgAir;
+  else                                          message = msgSol;
 
   if (scoreMax >= 2) {
     return {

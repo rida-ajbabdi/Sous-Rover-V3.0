@@ -675,10 +675,13 @@
     });
 
     // ══ WebSocket : écouter les nouvelles mesures envoyées par l'ESP32 ══
+    // P9 — un seul interval de polling, jamais dupliqué
+    let pollingInterval = setInterval(fetchBackendData, 5000);
+
     if (window.io) {
       const socketUrl = (window.location.port === '5500' || window.location.port === '5501')
         ? 'http://localhost:3000'
-        : undefined; // undefined = même origine (http://localhost:3000/...)
+        : undefined;
       const token = localStorage.getItem('soussrover_jwt');
       const socket = window.io(socketUrl, { auth: { token } });
       socket.on('connect', () => {
@@ -686,7 +689,6 @@
         if (window.addAlert) window.addAlert('WebSocket connecté — temps réel actif.', 'info');
       });
       socket.on('nouvelle_mesure', (data) => {
-        // Une nouvelle mesure vient d'arriver depuis l'ESP32 — rafraîchir le dashboard
         fetchBackendData();
         updateFastSensors();
         if (data.zone === currentZone && data.robot_status === 'obstacle' && window.addAlert) {
@@ -695,11 +697,7 @@
       });
       socket.on('disconnect', () => {
         console.warn('🔌 WebSocket déconnecté. Bascule sur polling de secours...');
-        setInterval(fetchBackendData, 5000);
       });
-    } else {
-      // Fallback si socket.io-client n'est pas chargé
-      setInterval(fetchBackendData, 5000);
     }
 
     // ══ Sélecteur de zone ══
@@ -1338,8 +1336,12 @@
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ command: cmd.api })
-          }).catch(console.error);
-          
+          }).then(r => r.json()).then(data => {
+            if (!data.succes && window.addAlert) window.addAlert(`Commande "${cmd.api}" non confirmée par le serveur.`, 'warn');
+          }).catch(() => {
+            if (window.addAlert) window.addAlert('Robot inaccessible — commande non envoyée.', 'crit');
+          });
+
           if (cmdLast) {
             cmdLast.textContent = cmd.text;
             cmdLast.style.color = cmd.color;
@@ -1369,7 +1371,11 @@
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ command: cmd.api })
-            }).catch(console.error);
+            }).then(r => r.json()).then(data => {
+              if (!data.succes && window.addAlert) window.addAlert(`Commande "${cmd.api}" non confirmée.`, 'warn');
+            }).catch(() => {
+              if (window.addAlert) window.addAlert('Robot inaccessible — commande non envoyée.', 'crit');
+            });
           }
           cmdLast.textContent = cmd.text;
           cmdLast.style.color = cmd.color;
@@ -1418,7 +1424,109 @@
 
   // === ALERTS LOGIC ===
   let alertsInitialized = false;
-  
+
+  async function fetchActiveAlertes() {
+    const feed = document.getElementById('active-alerts-feed');
+    if (!feed) return;
+    try {
+      const res = await fetch(API_BASE + '/api/alertes/actives');
+      if (!res.ok) return;
+      const data = await res.json();
+      if (!data.alertes || data.alertes.length === 0) {
+        feed.innerHTML = '<div class="alert-item alert-info" style="opacity:0.6;">✅ Aucune alerte active</div>';
+        return;
+      }
+      feed.innerHTML = '';
+      data.alertes.forEach(al => {
+        const item = document.createElement('div');
+        item.className = `alert-item ${al.niveau === 'rouge' ? 'alert-crit' : 'alert-warn'}`;
+        item.style.display = 'flex'; item.style.alignItems = 'center'; item.style.gap = '8px';
+        const t = new Date(al.created_at).toLocaleString('fr-FR', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' });
+        const tSpan = document.createElement('span'); tSpan.className = 'alert-time'; tSpan.textContent = t;
+        const iSpan = document.createElement('span'); iSpan.textContent = al.niveau === 'rouge' ? '🚨' : '⚠️';
+        const mSpan = document.createElement('span'); mSpan.className = 'alert-msg'; mSpan.style.flex = '1'; mSpan.textContent = al.message;
+        const btn  = document.createElement('button');
+        btn.textContent = '✓ Résoudre';
+        btn.style.cssText = 'background:rgba(0,212,170,0.15);border:1px solid rgba(0,212,170,0.4);color:#00D4AA;border-radius:4px;padding:2px 8px;cursor:pointer;font-size:0.7rem;white-space:nowrap;';
+        btn.addEventListener('click', async () => {
+          btn.disabled = true; btn.textContent = '...';
+          try {
+            await fetch(`${API_BASE}/api/alertes/${al.id}/resoudre`, { method: 'PUT' });
+            item.remove();
+            if (window.seenAlerts) window.seenAlerts.delete(`backend-alert-${al.id}`);
+            if (feed.children.length === 0) feed.innerHTML = '<div class="alert-item alert-info" style="opacity:0.6;">✅ Aucune alerte active</div>';
+          } catch (e) {
+            btn.disabled = false; btn.textContent = '✓ Résoudre';
+            if (window.addAlert) window.addAlert('Erreur lors de la résolution.', 'warn');
+          }
+        });
+        item.appendChild(tSpan); item.appendChild(iSpan); item.appendChild(mSpan); item.appendChild(btn);
+        feed.appendChild(item);
+      });
+    } catch (e) {
+      feed.innerHTML = '<div class="alert-item alert-info" style="opacity:0.5;">Erreur de chargement.</div>';
+    }
+  }
+
+  async function fetchWeeklyStats() {
+    const tbody = document.getElementById('weekly-stats-tbody');
+    if (!tbody) return;
+    try {
+      const res = await fetch(API_BASE + '/api/stats/hebdomadaire');
+      if (!res.ok) return;
+      const data = await res.json();
+      const zones = data.zones || {};
+      tbody.innerHTML = '';
+      let hasData = false;
+      Object.entries(zones).forEach(([zone, jours]) => {
+        jours.forEach(j => {
+          hasData = true;
+          const tr = document.createElement('tr');
+          tr.style.borderBottom = '1px solid rgba(255,255,255,0.05)';
+          const tdZ = document.createElement('td'); tdZ.style.cssText = 'padding:6px 10px'; tdZ.textContent = zone;
+          const tdJ = document.createElement('td'); tdJ.style.cssText = 'padding:6px 10px;text-align:right'; tdJ.textContent = j.jour;
+          const tdN = document.createElement('td'); tdN.style.cssText = 'padding:6px 10px;text-align:right'; tdN.textContent = j.nb_mesures;
+          const tdH = document.createElement('td'); tdH.style.cssText = 'padding:6px 10px;text-align:right;color:#00D4AA'; tdH.textContent = j.humidite_moy != null ? j.humidite_moy + '%' : '—';
+          const tdT = document.createElement('td'); tdT.style.cssText = 'padding:6px 10px;text-align:right;color:#F4A261'; tdT.textContent = j.temp_moy != null ? j.temp_moy + '°C' : '—';
+          tr.appendChild(tdZ); tr.appendChild(tdJ); tr.appendChild(tdN); tr.appendChild(tdH); tr.appendChild(tdT);
+          tbody.appendChild(tr);
+        });
+      });
+      if (!hasData) tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:20px;opacity:0.5;">Aucune donnée sur les 7 derniers jours</td></tr>';
+    } catch (e) {
+      if (tbody) tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:14px;opacity:0.5;">Erreur de chargement</td></tr>';
+    }
+  }
+
+  async function fetchSystemLogs() {
+    const feed = document.getElementById('system-logs-feed');
+    if (!feed) return;
+    try {
+      const res = await fetch(API_BASE + '/api/logs/erreurs?limite=20');
+      if (!res.ok) return;
+      const data = await res.json();
+      if (!data.logs || data.logs.length === 0) {
+        feed.innerHTML = '<div style="opacity:0.5;padding:16px;text-align:center;">✅ Aucune erreur système récente</div>';
+        return;
+      }
+      feed.innerHTML = '';
+      data.logs.forEach(log => {
+        const item = document.createElement('div');
+        item.style.cssText = 'padding:4px 10px;border-bottom:1px solid rgba(255,255,255,0.05);display:flex;gap:8px;align-items:flex-start;';
+        const color = log.niveau === 'ERROR' ? '#FF4757' : '#F4A261';
+        const t = new Date(log.created_at).toLocaleString('fr-FR', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' });
+        const lvl = document.createElement('span'); lvl.style.cssText = `color:${color};font-weight:bold;min-width:55px;`; lvl.textContent = `[${log.niveau}]`;
+        const ts  = document.createElement('span'); ts.style.cssText  = 'opacity:0.45;min-width:90px;'; ts.textContent = t;
+        const src = document.createElement('span'); src.style.cssText = 'opacity:0.6;min-width:70px;'; src.textContent = `[${log.source}]`;
+        const msg = document.createElement('span'); msg.style.flex = '1'; msg.textContent = log.message;
+        item.appendChild(lvl); item.appendChild(ts); item.appendChild(src); item.appendChild(msg);
+        feed.appendChild(item);
+      });
+    } catch (e) {
+      if (feed) feed.innerHTML = '<div style="opacity:0.5;padding:16px;text-align:center;">Erreur de chargement des logs</div>';
+    }
+  }
+
   function initAlerts() {
     if (alertsInitialized) return;
     alertsInitialized = true;
@@ -1429,12 +1537,24 @@
     });
 
     const btnClear = document.getElementById('btn-clear-alerts');
-    if (btnClear) {
-      btnClear.addEventListener('click', () => {
-        const feed = document.getElementById('alerts-feed');
-        if (feed) feed.innerHTML = '';
-      });
-    }
+    if (btnClear) btnClear.addEventListener('click', () => {
+      const feed = document.getElementById('alerts-feed');
+      if (feed) feed.innerHTML = '';
+    });
+
+    const btnRefreshActive = document.getElementById('btn-refresh-active-alerts');
+    if (btnRefreshActive) btnRefreshActive.addEventListener('click', fetchActiveAlertes);
+
+    const btnRefreshLogs = document.getElementById('btn-refresh-logs');
+    if (btnRefreshLogs) btnRefreshLogs.addEventListener('click', fetchSystemLogs);
+
+    fetchActiveAlertes();
+    fetchSystemLogs();
+    fetchWeeklyStats();
+
+    setInterval(fetchActiveAlertes, 15000);
+    setInterval(fetchSystemLogs, 30000);
+    setInterval(fetchWeeklyStats, 60000);
   }
 
   window.addAlert = function(msg, type = 'info') {
@@ -1448,12 +1568,12 @@
     const time = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}:${now.getSeconds().toString().padStart(2, '0')}`;
 
     const item = document.createElement('div');
-    item.className = `alert-item ${classes[type]}`;
-    item.innerHTML = `
-      <span class="alert-time">${time}</span>
-      <span class="alert-icon">${icons[type]}</span>
-      <span class="alert-msg">${msg}</span>
-    `;
+    item.className = `alert-item ${classes[type] || 'alert-info'}`;
+
+    const tSpan = document.createElement('span'); tSpan.className = 'alert-time'; tSpan.textContent = time;
+    const iSpan = document.createElement('span'); iSpan.className = 'alert-icon'; iSpan.textContent = icons[type] || 'ℹ️';
+    const mSpan = document.createElement('span'); mSpan.className = 'alert-msg';  mSpan.textContent = msg;
+    item.appendChild(tSpan); item.appendChild(iSpan); item.appendChild(mSpan);
 
     feed.prepend(item);
 

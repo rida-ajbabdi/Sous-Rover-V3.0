@@ -88,6 +88,7 @@ function obtenirMeteo(lat, lon) {
  * Sauvegarde les données météo dans le cache BDD.
  */
 function sauvegarderCache(lat, lon, meteo) {
+  db.run("DELETE FROM meteo_cache WHERE valide_jusqu < datetime('now')");
   const valide = new Date(Date.now() + CACHE_DUREE_MS).toISOString();
   db.run(
     `INSERT INTO meteo_cache

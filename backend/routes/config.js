@@ -207,4 +207,52 @@ router.post('/sols', requireWriteKey, upload.single('image'), async (req, res) =
   }
 });
 
+// ── DELETE /api/config/villes/:id ───────────────────────────
+router.delete('/villes/:id', requireWriteKey, async (req, res) => {
+  try {
+    const cfg = await dbGet('SELECT ville_id FROM system_config WHERE id = 1');
+    if (cfg && parseInt(cfg.ville_id) === parseInt(req.params.id)) {
+      return res.status(400).json({ erreur: 'Impossible de supprimer la ville actuellement active.' });
+    }
+    const r = await dbRun('DELETE FROM villes WHERE id = ?', [req.params.id]);
+    if (r.changes === 0) return res.status(404).json({ erreur: 'Ville introuvable.' });
+    logSysteme('INFO', 'config', `Ville supprimée : ID ${req.params.id}`);
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ erreur: err.message });
+  }
+});
+
+// ── DELETE /api/config/plantes/:id ──────────────────────────
+router.delete('/plantes/:id', requireWriteKey, async (req, res) => {
+  try {
+    const cfg = await dbGet('SELECT plante_id FROM system_config WHERE id = 1');
+    if (cfg && parseInt(cfg.plante_id) === parseInt(req.params.id)) {
+      return res.status(400).json({ erreur: 'Impossible de supprimer la culture actuellement active.' });
+    }
+    const r = await dbRun('DELETE FROM types_plante WHERE id = ?', [req.params.id]);
+    if (r.changes === 0) return res.status(404).json({ erreur: 'Culture introuvable.' });
+    logSysteme('INFO', 'config', `Culture supprimée : ID ${req.params.id}`);
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ erreur: err.message });
+  }
+});
+
+// ── DELETE /api/config/sols/:id ─────────────────────────────
+router.delete('/sols/:id', requireWriteKey, async (req, res) => {
+  try {
+    const cfg = await dbGet('SELECT sol_id FROM system_config WHERE id = 1');
+    if (cfg && parseInt(cfg.sol_id) === parseInt(req.params.id)) {
+      return res.status(400).json({ erreur: 'Impossible de supprimer le type de sol actuellement actif.' });
+    }
+    const r = await dbRun('DELETE FROM types_sol WHERE id = ?', [req.params.id]);
+    if (r.changes === 0) return res.status(404).json({ erreur: 'Type de sol introuvable.' });
+    logSysteme('INFO', 'config', `Sol supprimé : ID ${req.params.id}`);
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ erreur: err.message });
+  }
+});
+
 module.exports = router;

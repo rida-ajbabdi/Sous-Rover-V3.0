@@ -20,6 +20,12 @@ router.get('/', (req, res) => {
 router.put('/:id', (req, res) => {
   const { seuil_critique, seuil_attention, nom_zone, type_culture, active } = req.body;
 
+  if (seuil_critique !== undefined && seuil_attention !== undefined) {
+    if (parseFloat(seuil_critique) >= parseFloat(seuil_attention)) {
+      return res.status(400).json({ erreur: 'Le seuil critique doit être strictement inférieur au seuil d\'attention.' });
+    }
+  }
+
   db.run(
     `UPDATE zones SET
        seuil_critique  = COALESCE(?, seuil_critique),
