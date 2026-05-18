@@ -1545,6 +1545,7 @@
         peuplerDropdown(selectSol,    referentiels.sols,    'nom', 'sol');
         peuplerDropdown(selectPlante, referentiels.plantes, 'nom', 'plante');
 
+        peuplerGalleriePlantes(referentiels.plantes);
         await chargerConfigActive();
       } catch (err) {
         console.error('[Settings] Erreur chargement referentiels:', err);
@@ -1576,6 +1577,39 @@
       } catch (err) {
         console.warn('[Settings] Impossible de charger la config active:', err);
       }
+    }
+
+    // ── Peupler la galerie des plantes ────────────────────────
+    function peuplerGalleriePlantes(plantes) {
+      const grid = document.getElementById('gallery-plantes');
+      if (!grid) return;
+      grid.innerHTML = '';
+      plantes.forEach(plante => {
+        const imgSrc = plante.image_url || '/assets/images/plantes/default.jpg';
+        const card = document.createElement('div');
+        card.className = 'gallery-card';
+        card.dataset.id = plante.id;
+        card.innerHTML = `
+          <img src="${imgSrc}" alt="${plante.nom}" onerror="this.src='/assets/images/plantes/default.jpg'" loading="lazy" />
+          <span class="gallery-card-kc">Kc ${plante.kc}</span>
+          <span class="gallery-card-label">${plante.nom}</span>
+        `;
+        card.addEventListener('click', () => {
+          selectPlante.value = plante.id;
+          selectPlante.dataset.prevValue = plante.id;
+          mettreAJourPreview('plante', plante.id);
+          mettreAJourGalerie(plante.id);
+        });
+        grid.appendChild(card);
+      });
+    }
+
+    // ── Mettre en surbrillance la carte active dans la galerie ─
+    function mettreAJourGalerie(planteId) {
+      const cards = document.querySelectorAll('#gallery-plantes .gallery-card');
+      cards.forEach(c => {
+        c.classList.toggle('gallery-active', parseInt(c.dataset.id) === parseInt(planteId));
+      });
     }
 
     // ── Peupler un <select> ───────────────────────────────────
@@ -1622,6 +1656,7 @@
         previewPlanteImg.src = item.image_url || '/assets/images/plantes/default.jpg';
         previewPlanteNom.textContent = item.nom;
         hintPlante.textContent = `Coefficient Kc : ${item.kc}  ·  ${item.description || ''}`;
+        mettreAJourGalerie(idNum);
       }
     }
 

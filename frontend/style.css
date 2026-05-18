@@ -531,12 +531,83 @@ body.logged-in #hero-journey {
 .btn-save-modal:active { transform: translateY(0); }
 .btn-save-modal:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
 
+/* === GALERIE DES CULTURES === */
+.gallery-section {
+  padding: 0 32px 20px;
+  border-top: 1px solid rgba(255,255,255,0.06);
+  margin-top: 4px;
+  padding-top: 20px;
+}
+.gallery-header {
+  display: flex; align-items: baseline; gap: 12px; margin-bottom: 14px;
+}
+.gallery-title {
+  font-family: var(--font-display); font-size: 13px; font-weight: 600;
+  letter-spacing: 1.5px; text-transform: uppercase; color: rgba(232,237,242,0.6);
+}
+.gallery-subtitle {
+  font-family: var(--font-body); font-size: 12px; color: rgba(0,212,170,0.5);
+  letter-spacing: 0.3px;
+}
+.gallery-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+  gap: 10px;
+}
+.gallery-card {
+  position: relative; border-radius: 12px; overflow: hidden;
+  aspect-ratio: 3/2; cursor: pointer;
+  border: 2px solid rgba(255,255,255,0.08);
+  transition: border-color .25s, transform .25s, box-shadow .25s;
+  background: rgba(255,255,255,0.03);
+}
+.gallery-card img {
+  position: absolute; inset: 0; width: 100%; height: 100%;
+  object-fit: cover; transition: transform .4s; filter: brightness(0.65);
+}
+.gallery-card:hover img { transform: scale(1.08); filter: brightness(0.85); }
+.gallery-card-label {
+  position: absolute; bottom: 0; left: 0; right: 0;
+  font-family: var(--font-display); font-size: 11px; font-weight: 600;
+  color: var(--off-white); text-align: center;
+  padding: 5px 4px 6px;
+  background: linear-gradient(to top, rgba(0,0,0,0.75) 0%, transparent 100%);
+  letter-spacing: 0.3px; z-index: 2;
+}
+.gallery-card-kc {
+  position: absolute; top: 6px; right: 6px; z-index: 2;
+  font-family: var(--font-mono); font-size: 10px; font-weight: 700;
+  color: var(--cyber-cyan); background: rgba(0,0,0,0.55);
+  padding: 2px 6px; border-radius: 5px; backdrop-filter: blur(4px);
+}
+.gallery-card:hover {
+  border-color: rgba(0,212,170,0.5);
+  transform: translateY(-3px);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+}
+.gallery-card.gallery-active {
+  border-color: var(--cyber-cyan);
+  box-shadow: 0 0 0 1px var(--cyber-cyan), 0 8px 28px rgba(0,212,170,0.3);
+  transform: translateY(-3px);
+}
+.gallery-card.gallery-active img { filter: brightness(0.9); }
+.gallery-card.gallery-active::after {
+  content: '✓';
+  position: absolute; top: 6px; left: 6px; z-index: 3;
+  width: 20px; height: 20px; border-radius: 50%;
+  background: var(--cyber-cyan); color: var(--deep-navy);
+  font-size: 11px; font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+}
+
 /* Responsive Modal */
 @media (max-width: 768px) {
   .modal-body { grid-template-columns: 1fr; padding: 16px 20px; }
   .modal-header { padding: 20px; }
   .modal-footer { padding: 16px 20px 20px; }
   .config-active-banner { margin: 0 20px; margin-top: 12px; }
+  .gallery-section { padding: 16px 20px 16px; }
+  .gallery-grid { grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); gap: 8px; }
 }
 
 /* === LOGIN MODAL EXTRAS === */
