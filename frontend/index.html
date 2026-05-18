@@ -746,13 +746,23 @@
 
       </div>
 
-      <!-- Galerie des Cultures -->
+      <!-- Galerie Visuelle (Villes / Sols / Cultures) -->
       <div class="gallery-section">
-        <div class="gallery-header">
-          <h3 class="gallery-title">🌿 Galerie des Cultures</h3>
-          <span class="gallery-subtitle">Cliquez sur une culture pour la sélectionner rapidement</span>
+        <div class="gallery-tabs">
+          <button class="gallery-tab active" data-tab="plantes">🌿 Cultures</button>
+          <button class="gallery-tab" data-tab="sols">🪨 Sols</button>
+          <button class="gallery-tab" data-tab="villes">📍 Villes</button>
+          <span class="gallery-subtitle">Cliquez pour sélectionner</span>
         </div>
-        <div class="gallery-grid" id="gallery-plantes"></div>
+        <div class="gallery-pane" id="gallery-pane-plantes">
+          <div class="gallery-grid" id="gallery-plantes"></div>
+        </div>
+        <div class="gallery-pane" id="gallery-pane-sols" style="display:none;">
+          <div class="gallery-grid" id="gallery-sols"></div>
+        </div>
+        <div class="gallery-pane" id="gallery-pane-villes" style="display:none;">
+          <div class="gallery-grid" id="gallery-villes"></div>
+        </div>
       </div>
 
       <!-- Pied du modal -->

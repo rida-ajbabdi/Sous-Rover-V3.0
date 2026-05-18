@@ -1546,6 +1546,8 @@
         peuplerDropdown(selectPlante, referentiels.plantes, 'nom', 'plante');
 
         peuplerGalleriePlantes(referentiels.plantes);
+        peuplerGallerieSols(referentiels.sols);
+        peuplerGalerieVilles(referentiels.villes);
         await chargerConfigActive();
       } catch (err) {
         console.error('[Settings] Erreur chargement referentiels:', err);
@@ -1579,37 +1581,91 @@
       }
     }
 
-    // ── Peupler la galerie des plantes ────────────────────────
-    function peuplerGalleriePlantes(plantes) {
-      const grid = document.getElementById('gallery-plantes');
+    // ── Onglets de la galerie ─────────────────────────────────
+    document.querySelectorAll('.gallery-tab').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.gallery-tab').forEach(t => t.classList.remove('active'));
+        btn.classList.add('active');
+        const tab = btn.dataset.tab;
+        ['plantes', 'sols', 'villes'].forEach(t => {
+          const pane = document.getElementById(`gallery-pane-${t}`);
+          if (pane) pane.style.display = t === tab ? '' : 'none';
+        });
+      });
+    });
+
+    // ── Constructeur générique de galerie ─────────────────────
+    function construireGalerie(gridId, items, { imgFallback, badge, onSelect, getActiveId }) {
+      const grid = document.getElementById(gridId);
       if (!grid) return;
       grid.innerHTML = '';
-      plantes.forEach(plante => {
-        const imgSrc = plante.image_url || '/assets/images/plantes/default.jpg';
+      items.forEach(item => {
+        const imgSrc = item.image_url || imgFallback;
         const card = document.createElement('div');
         card.className = 'gallery-card';
-        card.dataset.id = plante.id;
+        card.dataset.id = item.id;
         card.innerHTML = `
-          <img src="${imgSrc}" alt="${plante.nom}" onerror="this.src='/assets/images/plantes/default.jpg'" loading="lazy" />
-          <span class="gallery-card-kc">Kc ${plante.kc}</span>
-          <span class="gallery-card-label">${plante.nom}</span>
+          <img src="${imgSrc}" alt="${item.nom}" onerror="this.src='${imgFallback}'" loading="lazy" />
+          ${badge(item) ? `<span class="gallery-card-kc">${badge(item)}</span>` : ''}
+          <span class="gallery-card-label">${item.nom}</span>
         `;
-        card.addEventListener('click', () => {
+        card.addEventListener('click', () => onSelect(item, card));
+        grid.appendChild(card);
+      });
+      rafraichirGalerieActive(gridId, getActiveId());
+    }
+
+    function rafraichirGalerieActive(gridId, activeId) {
+      document.querySelectorAll(`#${gridId} .gallery-card`).forEach(c => {
+        c.classList.toggle('gallery-active', parseInt(c.dataset.id) === parseInt(activeId));
+      });
+    }
+
+    // ── Galerie des plantes ───────────────────────────────────
+    function peuplerGalleriePlantes(plantes) {
+      construireGalerie('gallery-plantes', plantes, {
+        imgFallback: '/assets/images/plantes/default.jpg',
+        badge: p => `Kc ${p.kc}`,
+        onSelect: (plante) => {
           selectPlante.value = plante.id;
           selectPlante.dataset.prevValue = plante.id;
           mettreAJourPreview('plante', plante.id);
-          mettreAJourGalerie(plante.id);
-        });
-        grid.appendChild(card);
+        },
+        getActiveId: () => selectPlante.value
+      });
+    }
+
+    // ── Galerie des sols ──────────────────────────────────────
+    function peuplerGallerieSols(sols) {
+      construireGalerie('gallery-sols', sols, {
+        imgFallback: '/assets/images/sols/default.jpg',
+        badge: s => s.facteur_conversion_mm ? `${s.facteur_conversion_mm} mm/%` : '',
+        onSelect: (sol) => {
+          selectSol.value = sol.id;
+          selectSol.dataset.prevValue = sol.id;
+          mettreAJourPreview('sol', sol.id);
+        },
+        getActiveId: () => selectSol.value
+      });
+    }
+
+    // ── Galerie des villes ────────────────────────────────────
+    function peuplerGalerieVilles(villes) {
+      construireGalerie('gallery-villes', villes, {
+        imgFallback: '/assets/images/villes/default.jpg',
+        badge: v => v.latitude ? `${parseFloat(v.latitude).toFixed(1)}°N` : '',
+        onSelect: (ville) => {
+          selectVille.value = ville.id;
+          selectVille.dataset.prevValue = ville.id;
+          mettreAJourPreview('ville', ville.id);
+        },
+        getActiveId: () => selectVille.value
       });
     }
 
     // ── Mettre en surbrillance la carte active dans la galerie ─
     function mettreAJourGalerie(planteId) {
-      const cards = document.querySelectorAll('#gallery-plantes .gallery-card');
-      cards.forEach(c => {
-        c.classList.toggle('gallery-active', parseInt(c.dataset.id) === parseInt(planteId));
-      });
+      rafraichirGalerieActive('gallery-plantes', planteId);
     }
 
     // ── Peupler un <select> ───────────────────────────────────
@@ -1644,12 +1700,14 @@
         if (!item) return;
         previewVilleImg.src = item.image_url || '/assets/images/villes/default.jpg';
         previewVilleNom.textContent = item.nom;
+        rafraichirGalerieActive('gallery-villes', idNum);
       } else if (type === 'sol') {
         const item = referentiels.sols.find(s => s.id === idNum);
         if (!item) return;
         previewSolImg.src = item.image_url || '/assets/images/sols/default.jpg';
         previewSolNom.textContent = item.nom;
         hintSol.textContent = `Facteur sol : ${item.facteur_conversion_mm} mm/%  ·  ${item.description || ''}`;
+        rafraichirGalerieActive('gallery-sols', idNum);
       } else if (type === 'plante') {
         const item = referentiels.plantes.find(p => p.id === idNum);
         if (!item) return;
