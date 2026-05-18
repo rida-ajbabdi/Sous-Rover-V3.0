@@ -80,16 +80,18 @@ router.get('/', requireReadKey, async (req, res) => {
 
     // 7. Météo
     let meteo = null;
+    let villeActiveNom = 'Agadir';
     try {
-      // Récupérer les coordonnées de la ville sélectionnée dans la configuration active
+      // Récupérer les coordonnées et le nom de la ville sélectionnée dans la configuration active
       const sysConfig = await dbGet(`
-        SELECT v.latitude, v.longitude
+        SELECT v.latitude, v.longitude, v.nom
         FROM system_config sc
         LEFT JOIN villes v ON sc.ville_id = v.id
         WHERE sc.id = 1
       `);
-      const lat = sysConfig?.latitude || 30.4278; // Fallback Agadir
+      const lat = sysConfig?.latitude || 30.4278;
       const lon = sysConfig?.longitude || -9.5981;
+      villeActiveNom = sysConfig?.nom || 'Agadir';
       
       meteo = await obtenirMeteo(lat, lon);
     } catch (e) { /* ignore */ }
@@ -148,6 +150,7 @@ router.get('/', requireReadKey, async (req, res) => {
       alertes_actives : alertesActives,
       stats_jour      : statsJour,
       meteo,
+      ville_active    : villeActiveNom,
       arrosage_bloque : meteo ? arrosageBloque(meteo.probabilite_pluie) : false,
       robot_status    : robotStatus
     });

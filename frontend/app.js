@@ -777,6 +777,8 @@
         document.getElementById('val-weather').textContent = data.meteo.description_meteo || (p > 0.5 ? 'Pluie Prévue' : 'Ensoleillé');
         const wtEl = document.getElementById('val-weather-temp');
         if (wtEl && owmTemp != null) wtEl.textContent = owmTemp.toFixed(1) + '°C · prévision OWM';
+        const cityEl = document.getElementById('weather-city-name');
+        if (cityEl && data.ville_active) cityEl.textContent = data.ville_active;
       }
 
       // Robot staleness banner
@@ -1898,7 +1900,11 @@
         const { ville, sol, plante } = data.config;
         configActiveText.textContent = `${ville.nom}  ·  ${sol.nom}  ·  ${plante.nom}`;
         if (navBadge) navBadge.textContent = ville.nom;
+        const cityEl = document.getElementById('weather-city-name');
+        if (cityEl) cityEl.textContent = ville.nom;
         btnSaveText.textContent = '✅ Configuration Appliquée !';
+        // Recharger les données météo avec la nouvelle ville
+        setTimeout(() => fetchBackendData(), 500);
 
         setTimeout(() => {
           btnSaveText.textContent = '💾 Appliquer la Configuration';
