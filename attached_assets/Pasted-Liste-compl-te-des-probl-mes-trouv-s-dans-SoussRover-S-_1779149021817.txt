@@ -1,0 +1,163 @@
+Liste complète des problèmes trouvés dans SoussRover
+
+🔐 SÉCURITÉ
+
+1. JWT_SECRET hardcodé en fallback dans 3 fichiers
+
+backend/server.js ligne 15
+
+backend/modules/auth.js ligne 8
+
+backend/routes/auth.js ligne 12
+
+→ La clé 'SoussRover_JWT_Ultra_Secret_2026_XkP9mNqL' est dans le code source. Si le secret Replit est supprimé, l'application continue de fonctionner avec une clé connue de tous.
+
+2. API_WRITE_KEY et API_READ_KEY jamais configurés comme secrets
+
+backend/modules/auth.js lignes 6-7
+
+→ Les clés 'SoussRoverSecretKey2026' et 'SoussRoverReadKey2026' sont toujours utilisées car aucun secret Replit ne les remplace. N'importe qui connaissant ces valeurs hardcodées peut poster des données ou lire l'API.
+
+3. Mot de passe admin par défaut = nom d'utilisateur
+
+backend/modules/database.js
+
+→ Le compte admin "Rida Ajbabdi" est créé avec le même texte pour le nom et le mot de passe.
+
+4. 11 routes API sans aucune authentification
+
+GET /api/zones — liste des zones visible par tous
+
+PUT /api/zones/:id — n'importe qui peut modifier les seuils critiques
+
+GET /api/alertes/actives — alertes accessibles sans login
+
+GET /api/alertes/historique — historique public
+
+PUT /api/alertes/:id/resoudre — n'importe qui peut clore une alerte
+
+POST /api/command — n'importe qui peut envoyer une commande au robot (avancer, reculer, arrêt d'urgence)
+
+GET /api/command/latest — commandes lisibles sans auth
+
+GET /api/mode — mode du robot lisible sans auth
+
+POST /api/mode — n'importe qui peut changer le mode du robot
+
+GET /api/stats/journalier et /hebdomadaire — stats publiques
+
+GET /api/logs et /api/logs/erreurs — logs système publics
+
+5. Upload de fichiers sans validation (Multer)
+
+backend/routes/config.js lignes 17-26
+
+→ Aucun filtre sur le type de fichier (fileFilter) ni limite de taille (limits.fileSize). On peut uploader n'importe quel fichier (script, exécutable...) sur le serveur.
+
+6. CORS totalement ouvert
+
+backend/server.js — cors() sans options + Socket.IO { origin: '*' }
+
+→ Toutes les origines sont acceptées.
+
+7. Aucune protection contre le brute force sur le login
+
+backend/routes/auth.js
+
+→ Pas de rate limiting sur POST /api/auth/login. On peut tenter des milliers de mots de passe sans blocage.
+
+🐛 BUGS
+
+8. battery_level manquant dans la réponse dashboard
+
+backend/routes/dashboard.js (~ligne 122) — le resumeZones construit l'objet zone sans inclure battery_level
+
+frontend/app.js ligne 903 — lit z.battery_level
+
+→ La batterie affiche toujours 100% (valeur par défaut), peu importe ce que le robot envoie.
+
+9. Intervals de polling WebSocket qui s'accumulent
+
+frontend/app.js ligne 698 et 702
+
+→ Il y a toujours un setInterval(fetchBackendData, 5000) qui tourne (ligne 702). Chaque fois que le WebSocket se déconnecte, un nouveau interval démarre (ligne 698) sans jamais annuler les précédents. Après 3 déconnexions : 4 appels API parallèles toutes les 5 secondes.
+
+10. Bug de sélection du message d'alerte dans l'algorithme
+
+backend/modules/algorithmes.js lignes 65-69
+
+→ La logique de priorité if (scoreMax === scoreTemp && msgTemp) est incorrecte : si le sol ET la température sont simultanément critiques (score=2), le message de température prend toujours la priorité, même si le sol est la vraie cause à traiter.
+
+11. innerHTML avec des données provenant du serveur (XSS potentiel)
+
+frontend/app.js lignes 1452-1456 — msg injecté dans innerHTML provient de al.message (données serveur/robot)
+
+frontend/app.js ligne 1609-1613 — item.nom injecté dans innerHTML (données BDD)
+
+→ Si un message d'alerte ou un nom de référentiel contient du HTML/JS, il sera exécuté dans le navigateur.
+
+🧠 LOGIQUE
+
+12. Seuils d'urgence incohérents entre les deux algorithmes
+
+backend/modules/algorithmes.js
+
+→ Algorithme ET0 : < 2h = 'immédiat', < 6h = 'très urgent'. Algorithme VPD fallback : < 1h = 'très urgent', 0h = 'immédiat'. Le même scénario (ex : 1h30 restantes) donne une urgence différente selon l'algorithme utilisé.
+
+13. Cache météo jamais nettoyé
+
+backend/modules/meteo.js / backend/modules/database.js
+
+→ Les anciennes entrées expirées dans meteo_cache ne sont jamais supprimées. La table grossit indéfiniment au fil du temps.
+
+14. Aucun bouton "Résoudre" dans l'interface pour les alertes
+
+backend/routes/alertes.js — l'endpoint PUT /api/alertes/:id/resoudre existe
+
+frontend/app.js — cet endpoint n'est jamais appelé
+
+→ Les alertes s'accumulent dans la base et dans le feed sans pouvoir être clôturées depuis le dashboard.
+
+15. Routes statistiques définies mais jamais utilisées
+
+backend/routes/stats.js — GET /api/stats/journalier et /api/stats/hebdomadaire
+
+→ Ces routes existent et fonctionnent mais le frontend les ignore complètement. Les graphiques Analytics utilisent /api/donnees/zone/:code à la place. Le travail de ces routes ne profite à personne.
+
+16. Routes logs définies mais jamais utilisées
+
+backend/routes/logs.js — GET /api/logs et /api/logs/erreurs
+
+→ Aucun panneau "Logs" dans le dashboard. Ces données (erreurs, warnings serveur) sont générées mais inaccessibles pour l'opérateur.
+
+17. Pas de validation de cohérence sur PUT /api/zones/:id
+
+backend/routes/zones.js
+
+→ On peut envoyer seuil_critique = 80 et seuil_attention = 10 (critique > attention), ce qui est logiquement absurde et ferait fonctionner l'algorithme à l'envers.
+
+18. Pas de route DELETE pour villes, sols et plantes
+
+backend/routes/config.js
+
+→ On peut ajouter des villes/sols/plantes, mais impossible de les supprimer. Une ville créée par erreur reste pour toujours.
+
+19. Commandes manuelles du robot sans gestion d'erreur réseau
+
+frontend/app.js lignes 1337-1374
+
+→ Les boutons de contrôle (avant, arrière, gauche, droite) ont un .catch(console.error) mais aucun message utilisateur si le robot est hors ligne ou si la commande échoue. L'opérateur croit avoir envoyé une commande alors qu'elle a échoué silencieusement.
+
+20. Heatmap affiche 50% pour les zones sans données
+
+frontend/app.js ligne 1146
+
+→ heatmapData.push(0.5) est la valeur par défaut quand une zone n'a pas de mesure. L'opérateur voit une couleur "neutre" au lieu d'une indication claire "pas de données".
+
+21. Algorithme ET0 arrondi à l'heure entière
+
+backend/modules/algorithmes.js fonction predireArrosageET0
+
+→ La boucle compte des heures entières. Un résultat réel de 6h45 sera affiché comme 7h, ce qui peut faire rater le moment optimal d'arrosage.
+
+Résumé : 7 problèmes de sécurité, 4 bugs directs, 10 problèmes de logique/fonctionnalité manquante.
